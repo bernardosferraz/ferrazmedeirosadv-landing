@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ferrazmedeiros.com.br/sitemap.xml
