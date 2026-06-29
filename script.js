@@ -1,97 +1,105 @@
-// Mobile Menu Toggle
 const mobileMenu = document.getElementById('mobile-menu');
-const navMenu = document.querySelector('.nav-menu');
+const navMenu = document.getElementById('nav-menu');
 const navLinks = document.querySelectorAll('.nav-link');
+const navbar = document.querySelector('.navbar');
 
-if (mobileMenu) {
+function setMenuState(isOpen) {
+    if (!mobileMenu || !navMenu) return;
+
+    mobileMenu.classList.toggle('active', isOpen);
+    navMenu.classList.toggle('active', isOpen);
+    document.body.classList.toggle('menu-open', isOpen);
+    mobileMenu.setAttribute('aria-expanded', String(isOpen));
+    mobileMenu.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
+}
+
+if (mobileMenu && navMenu) {
     mobileMenu.addEventListener('click', () => {
-        mobileMenu.classList.toggle('active');
-        navMenu.classList.toggle('active');
+        setMenuState(!navMenu.classList.contains('active'));
     });
 }
 
-// Close menu when clicking a link
-navLinks.forEach(link => {
+navLinks.forEach((link) => {
     link.addEventListener('click', () => {
-        mobileMenu.classList.remove('active');
-        navMenu.classList.remove('active');
+        setMenuState(false);
     });
 });
 
-// Navbar background change on scroll
-const navbar = document.querySelector('.navbar');
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-        navbar.style.background = 'rgba(15, 23, 42, 0.98)'; // Darker Navy
-        navbar.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
-        navbar.style.padding = '0'; // Optional smooth shrink effect could be added here
-    } else {
-        navbar.style.background = '#0f172a'; // Solid Navy at top
-        navbar.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)';
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        setMenuState(false);
     }
 });
 
-// FAQ Accordion
+function updateNavbarState() {
+    if (!navbar) return;
+    navbar.classList.toggle('scrolled', window.scrollY > 24);
+}
+
+updateNavbarState();
+window.addEventListener('scroll', updateNavbarState, { passive: true });
+
+document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener('click', function (event) {
+        const targetId = this.getAttribute('href');
+        if (!targetId || targetId === '#') return;
+
+        const targetElement = document.querySelector(targetId);
+        if (!targetElement) return;
+
+        event.preventDefault();
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
+
 const accordionHeaders = document.querySelectorAll('.accordion-header');
 
-accordionHeaders.forEach(header => {
-    header.addEventListener('click', () => {
-        const accordionItem = header.parentElement;
-        const accordionContent = header.nextElementSibling;
+accordionHeaders.forEach((header) => {
+    header.setAttribute('aria-expanded', 'false');
 
-        // Close other open items
-        document.querySelectorAll('.accordion-content').forEach(content => {
-            if (content !== accordionContent) {
-                content.style.maxHeight = null;
-                content.parentElement.querySelector('.accordion-header').classList.remove('active');
+    const content = header.nextElementSibling;
+    if (content) {
+        const contentId = `faq-${Math.random().toString(36).slice(2, 9)}`;
+        content.id = contentId;
+        header.setAttribute('aria-controls', contentId);
+    }
+
+    header.addEventListener('click', () => {
+        const accordionContent = header.nextElementSibling;
+        const willOpen = !header.classList.contains('active');
+
+        accordionHeaders.forEach((otherHeader) => {
+            const otherContent = otherHeader.nextElementSibling;
+            otherHeader.classList.remove('active');
+            otherHeader.setAttribute('aria-expanded', 'false');
+            if (otherContent) {
+                otherContent.style.maxHeight = null;
             }
         });
 
-        // Toggle current item
-        header.classList.toggle('active');
-        if (header.classList.contains('active')) {
-            accordionContent.style.maxHeight = accordionContent.scrollHeight + "px";
-        } else {
-            accordionContent.style.maxHeight = null;
+        if (willOpen && accordionContent) {
+            header.classList.add('active');
+            header.setAttribute('aria-expanded', 'true');
+            accordionContent.style.maxHeight = `${accordionContent.scrollHeight}px`;
         }
     });
 });
 
-// Smooth Scroll for anchor links (polyfill for older browsers if needed, but CSS scroll-behavior usually handles it)
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const targetId = this.getAttribute('href');
-        if (targetId === '#') return;
+const reviewTrack = document.getElementById('reviews-track');
+const nextReviewButton = document.getElementById('review-next-btn');
+const prevReviewButton = document.getElementById('review-prev-btn');
 
-        const targetElement = document.querySelector(targetId);
-        if (targetElement) {
-            // Offset for fixed header
-            const headerOffset = 80;
-            const elementPosition = targetElement.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: "smooth"
-            });
-        }
+function scrollReviews(direction) {
+    if (!reviewTrack) return;
+    const firstCard = reviewTrack.querySelector('.review-card');
+    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : 310;
+    reviewTrack.scrollBy({
+        left: direction * (cardWidth + 16),
+        behavior: 'smooth',
     });
-});
+}
 
-// Reviews Carousel Logic
-document.addEventListener('DOMContentLoaded', () => {
-    const track = document.getElementById('reviews-track');
-    const nextBtn = document.getElementById('review-next-btn');
-    const prevBtn = document.getElementById('review-prev-btn');
-
-    if (track && nextBtn && prevBtn) {
-        nextBtn.addEventListener('click', () => {
-            track.scrollBy({ left: 320, behavior: 'smooth' }); // 300px card + 20px gap
-        });
-
-        prevBtn.addEventListener('click', () => {
-            track.scrollBy({ left: -320, behavior: 'smooth' });
-        });
-    }
-});
+if (reviewTrack && nextReviewButton && prevReviewButton) {
+    nextReviewButton.addEventListener('click', () => scrollReviews(1));
+    prevReviewButton.addEventListener('click', () => scrollReviews(-1));
+}
